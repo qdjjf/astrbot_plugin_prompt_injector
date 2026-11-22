@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>提示词编排面板</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+    <main class="app-shell">
+      <!-- 顶部栏 -->
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5z" />
+              <path d="M2 17l10 5 10-5" />
+              <path d="M2 12l10 5 10-5" />
+            </svg>
+          </div>
+          <div>
+            <h1>提示词组合注入器 · 可视化排序面板</h1>
+            <p class="subtitle">
+              在每次请求时向 <span class="badge-inline pos-bp">人格设定前</span>
+              <span class="badge-inline pos-ap">人格设定后</span>
+              <span class="badge-inline pos-bu">用户最新输入前</span>
+              <span class="badge-inline pos-au">用户最新输入后</span> 注入多个提示词
+            </p>
+          </div>
+        </div>
+
+        <div class="topbar-controls">
+          <label class="switch-pill" title="提示词注入器总开关">
+            <input type="checkbox" id="global-enabled" checked />
+            <span class="slider"></span>
+            <span class="switch-label" id="global-enabled-text">总开关：已开启</span>
+          </label>
+
+          <button type="button" id="btn-refresh" class="btn btn-ghost" title="重新从服务端读取配置">
+            ↻ 刷新
+          </button>
+          <button type="button" id="btn-save-all" class="btn btn-primary">
+            💾 保存全部修改
+          </button>
+        </div>
+      </header>
+
+      <!-- 全局参数与组合快速切换栏 -->
+      <section class="preset-hub card">
+        <div class="preset-hub-header">
+          <div class="hub-title-group">
+            <h2>📂 提示词组合 (Presets) 自由切换与管理</h2>
+            <span id="unsaved-indicator" class="unsaved-tag" hidden>● 有未保存的修改</span>
+          </div>
+          <div class="hub-actions">
+            <button type="button" id="btn-new-preset" class="btn btn-secondary btn-sm">
+              ＋ 新建组合
+            </button>
+            <button type="button" id="btn-dup-preset" class="btn btn-ghost btn-sm">
+              ❐ 复制当前组合
+            </button>
+            <button type="button" id="btn-export-preset" class="btn btn-ghost btn-sm" title="导出或导入组合 JSON">
+              ⇄ 导入/导出 JSON
+            </button>
+            <button type="button" id="btn-del-preset" class="btn btn-danger btn-sm">
+              🗑 删除当前组合
+            </button>
+          </div>
+        </div>
+
+        <!-- 组合卡片切换条 -->
+        <div id="preset-tabs" class="preset-tabs" role="tablist"></div>
+
+        <!-- 当前选中组合元信息与全局数量限制 -->
+        <div class="preset-meta-bar">
+          <label class="field">
+            <span class="field-label">当前编辑组合名称</span>
+            <input type="text" id="preset-name-input" class="input" maxlength="50" placeholder="输入组合名称" />
+          </label>
+
+          <label class="field">
+            <span class="field-label">生效会话范围</span>
+            <select id="preset-scope-select" class="input">
+              <option value="all">全部会话（群聊 + 私聊）</option>
+              <option value="group">仅群聊 (Group)</option>
+              <option value="private">仅私聊 (Private)</option>
+            </select>
+          </label>
+
+          <label class="field grow">
+            <span class="field-label">组合备注说明</span>
+            <input type="text" id="preset-desc-input" class="input" maxlength="100" placeholder="可选：记录该组合的用途..." />
+          </label>
+
+          <label class="field">
+            <span class="field-label" title="每个位置（人格前/人格后/输入前/输入后）最多生效多少条提示词，0表示不限制">单位置数量上限 (0=不限)</span>
+            <input type="number" id="max-per-pos-input" class="input input-num" min="0" max="100" step="1" value="10" />
+          </label>
+
+          <div class="field-btn-col">
+            <button type="button" id="btn-activate-current" class="btn btn-accent">
+              ⚡ 设为当前生效组合
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 主工作区：左侧可视化排序流（含人格设定与用户最新输入锚点），右侧编辑详情与实时注入预览 -->
+      <div class="workspace-grid">
+        <!-- 左侧：统一排序流 -->
+        <section class="card flow-panel">
+          <div class="panel-header">
+            <div>
+              <h2>🔀 提示词注入排序流（拖拽或点击 ↑↓ 调整顺序）</h2>
+              <p class="panel-hint">
+                <strong>🔒 人格设定</strong> 与 <strong>💬 用户最新输入</strong> 直接呈现在下方排序列表中。拖动提示词跨越锚点，或切换条目上的位置标签即可改变其注入位置。
+              </p>
+            </div>
+            <div class="quick-add-bar">
+              <span class="quick-add-label">＋ 添加提示词到：</span>
+              <button type="button" class="btn btn-chip pos-bp" data-add-pos="before_persona">
+                ＋ 人格设定前
+              </button>
+              <button type="button" class="btn btn-chip pos-ap" data-add-pos="after_persona">
+                ＋ 人格设定后
+              </button>
+              <button type="button" class="btn btn-chip pos-bu" data-add-pos="before_user">
+                ＋ 用户输入前
+              </button>
+              <button type="button" class="btn btn-chip pos-au" data-add-pos="after_user">
+                ＋ 用户输入后
+              </button>
+            </div>
+          </div>
+
+          <!-- 四个位置统计摘要条 -->
+          <div id="position-stats-bar" class="position-stats-bar"></div>
+
+          <!-- 排序列表容器 -->
+          <ol id="flow-list" class="flow-list" aria-label="提示词与系统锚点排序列表"></ol>
+        </section>
+
+        <!-- 右侧：提示词编辑器 + 实时请求组装预览 -->
+        <aside class="side-panel">
+          <!-- 提示词条目编辑卡片 -->
+          <section class="card editor-card" id="item-editor-card">
+            <div class="panel-header">
+              <h2 id="editor-title">📝 编辑提示词条目</h2>
+              <span id="editor-pos-badge" class="badge-inline">未选择</span>
+            </div>
+
+            <div id="editor-empty" class="editor-empty">
+              <p>👈 请在左侧排序流中点击任意一条<strong>提示词卡片</strong>进行编辑，或点击上方「＋ 添加提示词」按钮创建新提示词。</p>
+            </div>
+
+            <div id="editor-form" class="editor-form" hidden>
+              <div class="form-row">
+                <label class="field grow">
+                  <span class="field-label">提示词名称</span>
+                  <input type="text" id="item-name-input" class="input" maxlength="60" placeholder="例如：角色语气强化" />
+                </label>
+
+                <label class="field">
+                  <span class="field-label">注入位置</span>
+                  <select id="item-pos-select" class="input">
+                    <option value="before_persona">1. 人格设定前 (Before Persona)</option>
+                    <option value="after_persona">2. 人格设定后 (After Persona)</option>
+                    <option value="before_user">3. 用户最新输入前 (Before User Input)</option>
+                    <option value="after_user">4. 用户最新输入后 (After User Input)</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="form-row align-center">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="item-enabled-input" />
+                  <span>启用该条提示词</span>
+                </label>
+                <span class="char-counter" id="item-char-count">0 字符</span>
+              </div>
+
+              <label class="field">
+                <span class="field-label">提示词内容（支持点击下方变量标签快速插入）</span>
+                <textarea
+                  id="item-content-input"
+                  class="textarea"
+                  rows="8"
+                  spellcheck="false"
+                  placeholder="在此输入要注入的提示词内容..."
+                ></textarea>
+              </label>
+
+              <div class="var-chips-wrap">
+                <span class="var-chips-title">可用动态变量：</span>
+                <div id="var-chips" class="var-chips"></div>
+              </div>
+
+              <div class="editor-footer">
+                <button type="button" id="btn-item-delete" class="btn btn-danger btn-sm">
+                  🗑 删除此条提示词
+                </button>
+                <div class="editor-move-group">
+                  <button type="button" id="btn-item-up" class="btn btn-ghost btn-sm">↑ 上移</button>
+                  <button type="button" id="btn-item-down" class="btn btn-ghost btn-sm">↓ 下移</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 实时组装预览与全局高级设置 -->
+          <section class="card preview-card">
+            <div class="panel-header">
+              <h2>👁️ 实时请求组装预览 & 注入设置</h2>
+            </div>
+
+            <div class="advanced-bar">
+              <label class="field">
+                <span class="field-label">拼接分隔符</span>
+                <input type="text" id="sep-input" class="input input-sm" value="\n\n" title="默认 \n\n 代表两个换行" />
+              </label>
+              <label class="checkbox-label" title="关闭时（推荐），注入在用户最新输入后的内容仅当次请求生效，不污染历史记录">
+                <input type="checkbox" id="save-history-input" />
+                <span>用户输入后置提示词写入历史</span>
+              </label>
+            </div>
+
+            <div class="preview-inputs">
+              <label class="field">
+                <span class="field-label">预览用人格设定（可选系统中已有的人格）</span>
+                <select id="preview-persona-select" class="input input-sm">
+                  <option value="">-- 示例默认人格设定 --</option>
+                </select>
+              </label>
+              <label class="field">
+                <span class="field-label">预览用「用户最新输入」</span>
+                <input type="text" id="preview-user-input" class="input input-sm" value="你好！请帮我规划一下今天的学习安排。" />
+              </label>
+            </div>
+
+            <div class="preview-output">
+              <div class="preview-block">
+                <div class="preview-block-head">
+                  <strong>1. 最终 System Prompt（含人格设定前 + 人格设定 + 人格设定后）</strong>
+                </div>
+                <pre id="preview-system" class="preview-pre"></pre>
+              </div>
+
+              <div class="preview-block">
+                <div class="preview-block-head">
+                  <strong>2. 最终用户最新输入消息（含用户输入前 + 用户最新输入 + 用户输入后）</strong>
+                </div>
+                <pre id="preview-user" class="preview-pre"></pre>
+              </div>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <!-- 导入/导出 JSON 模态框 -->
+    <div id="json-modal" class="modal-backdrop" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-header">
+          <h3 id="modal-title">导入 / 导出当前提示词组合 JSON</h3>
+          <button type="button" id="btn-modal-close" class="btn-icon" aria-label="关闭">×</button>
+        </div>
+        <div class="modal-body">
+          <p class="panel-hint">您可以复制下方 JSON 备份或分享当前提示词组合，也可以粘贴 JSON 后点击「导入覆盖当前组合」或「导入为新组合」。</p>
+          <textarea id="json-modal-textarea" class="textarea code-area" rows="14" spellcheck="false"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="btn-json-copy" class="btn btn-ghost">📋 复制 JSON</button>
+          <button type="button" id="btn-json-import-new" class="btn btn-secondary">＋ 导入为新组合</button>
+          <button type="button" id="btn-json-import-overwrite" class="btn btn-primary">📥 导入并覆盖当前组合</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

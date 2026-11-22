@@ -1,0 +1,6 @@
+name: astrbot_plugin_prompt_injector
+display_name: 提示词组合注入器
+desc: 支持在每次LLM请求时，于人格设定前、人格设定后、用户最新输入前、用户最新输入后注入一个或多个提示词。提供可视化拖拽排序编辑面板（包含人格设定与用户最新输入锚点）以及多提示词组合自由切换管理。
+version: v1.0.0
+author: CodeMage
+repo: https://github.com/AstrBotDevs/AstrBot

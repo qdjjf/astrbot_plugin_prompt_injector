@@ -1,0 +1,207 @@
+{
+  "enabled": {
+    "description": "启用提示词注入",
+    "hint": "总开关。开启后，每次请求 LLM 时会按当前激活的提示词组合自动注入提示词。推荐前往插件详情页的「提示词编排面板」可视化调整与切换组合。",
+    "type": "bool",
+    "default": true
+  },
+  "active_preset_name": {
+    "description": "当前启用的提示词组合名称",
+    "hint": "填写下方提示词组合列表中某个组合的名称（留空或未匹配时自动使用列表中第一个启用的组合）。也可在可视化面板中一键切换，或使用 /pi switch 命令切换。",
+    "type": "string",
+    "default": "默认提示词组合"
+  },
+  "max_prompts_per_position": {
+    "description": "单位置最大注入提示词数量",
+    "hint": "限制每个注入位置（人格设定前、人格设定后、用户最新输入前、用户最新输入后）最多允许注入的提示词条数（0 表示不限制）。可在可视化面板中随时调整。",
+    "type": "int",
+    "default": 10,
+    "slider": {
+      "min": 0,
+      "max": 30,
+      "step": 1
+    }
+  },
+  "separator": {
+    "description": "提示词拼接分隔符",
+    "hint": "多条提示词之间以及与原内容拼接时使用的分隔符，支持转义字符 \\n（换行）。默认两个换行符 \\n\\n。",
+    "type": "string",
+    "default": "\\n\\n"
+  },
+  "save_user_injected_to_history": {
+    "description": "用户输入前后注入内容是否写入对话历史",
+    "hint": "关闭时（推荐），注入在用户最新输入后的额外内容块（extra_user_content_parts）将标记为临时（temp），仅对当次请求生效而不污染持久化历史记录；开启则会随对话历史一并保存。",
+    "type": "bool",
+    "default": false
+  },
+  "presets_config": {
+    "description": "快速配置：多提示词组合与排序（原生表单）",
+    "hint": "您可以在此使用原生表单配置提示词组合，但更推荐点击插件管理页的「打开视图 / 提示词编排面板」使用全可视化拖拽排序面板！在列表中，「🔒人格设定」与「💬用户最新输入」会直接呈现在排序中。",
+    "type": "template_list",
+    "default": [
+      {
+        "__template_key": "preset_group",
+        "preset_id": "default",
+        "preset_name": "默认提示词组合",
+        "enabled": true,
+        "scope": "all",
+        "description": "通用默认提示词注入组合",
+        "sequence": [
+          {
+            "__template_key": "prompt_item",
+            "id": "p_pre_persona_1",
+            "name": "全局前置准则",
+            "enabled": true,
+            "content": "请始终保持自然、沉浸式的对话体验，严格遵循接下来的角色设定与上下文逻辑。"
+          },
+          {
+            "__template_key": "anchor_persona",
+            "note": "【系统锚点】此处为 AstrBot 的人格设定（Persona）。排在此锚点上方的提示词注入在「人格设定前」，下方的提示词注入在「人格设定后」。"
+          },
+          {
+            "__template_key": "prompt_item",
+            "id": "p_post_persona_1",
+            "name": "补充背景与文风要求",
+            "enabled": true,
+            "content": "回复时注重语言简练与情感表达，避免机械式说教。"
+          },
+          {
+            "__template_key": "prompt_item",
+            "id": "p_pre_user_1",
+            "name": "用户输入前置引导",
+            "enabled": false,
+            "content": "[以下是用户的最新输入，请结合上下文认真回应]"
+          },
+          {
+            "__template_key": "anchor_user_input",
+            "note": "【系统锚点】此处为「用户最新输入」。排在此锚点上方（且在人格设定锚点下方）的提示词可注入在「用户最新输入前」，排在此锚点下方的提示词注入在「用户最新输入后」。"
+          },
+          {
+            "__template_key": "prompt_item",
+            "id": "p_post_user_1",
+            "name": "用户输入后置提醒",
+            "enabled": false,
+            "content": "<system_hint>当前时间：{date} {time}，发送者：{user_name}</system_hint>"
+          }
+        ]
+      }
+    ],
+    "templates": {
+      "preset_group": {
+        "name": "提示词组合",
+        "hint": "创建一个独立的提示词组合，包含完整的排序流（人格设定前/后、用户最新输入前/后）",
+        "display_item": "preset_name",
+        "hide_hint_in_list": true,
+        "items": {
+          "preset_id": {
+            "description": "组合唯一标识 (ID)",
+            "type": "string",
+            "default": "preset_1",
+            "hint": "组合的内部 ID，留空会自动生成"
+          },
+          "preset_name": {
+            "description": "组合名称",
+            "type": "string",
+            "default": "新提示词组合",
+            "hint": "用于区分和切换不同组合的名称"
+          },
+          "enabled": {
+            "description": "启用此组合",
+            "type": "bool",
+            "default": true
+          },
+          "scope": {
+            "description": "生效会话范围",
+            "type": "string",
+            "options": ["all", "group", "private"],
+            "labels": ["全部会话（群聊 + 私聊）", "仅群聊", "仅私聊"],
+            "default": "all"
+          },
+          "description": {
+            "description": "组合备注说明",
+            "type": "string",
+            "default": ""
+          },
+          "sequence": {
+            "description": "注入顺序编排（含人格设定与用户最新输入锚点）",
+            "hint": "在列表中上下调整顺序：「🔒人格设定」锚点之前为【人格设定前】；两个锚点之间可设为【人格设定后】或【用户最新输入前】；「💬用户最新输入」锚点之后为【用户最新输入后】。",
+            "type": "template_list",
+            "default": [],
+            "templates": {
+              "prompt_item": {
+                "name": "📝 注入提示词",
+                "hint": "可放置在人格设定前、人格设定后、用户最新输入前、用户最新输入后",
+                "display_item": "name",
+                "hide_hint_in_list": true,
+                "items": {
+                  "id": {
+                    "description": "提示词 ID",
+                    "type": "string",
+                    "default": "",
+                    "invisible": true
+                  },
+                  "name": {
+                    "description": "提示词名称",
+                    "type": "string",
+                    "default": "未命名提示词"
+                  },
+                  "enabled": {
+                    "description": "启用该条提示词",
+                    "type": "bool",
+                    "default": true
+                  },
+                  "position_override": {
+                    "description": "精确位置归属（当位于两个锚点之间时生效）",
+                    "hint": "auto 表示根据在排序列表中的位置自动判定；当条目位于「人格设定」与「用户最新输入」之间时，可通过此项明确指定是属于「人格设定后」还是「用户最新输入前」。",
+                    "type": "string",
+                    "options": ["auto", "before_persona", "after_persona", "before_user", "after_user"],
+                    "labels": [
+                      "自动跟随排序位置 (Auto)",
+                      "强制：人格设定前 (Before Persona)",
+                      "强制：人格设定后 (After Persona)",
+                      "强制：用户最新输入前 (Before User Input)",
+                      "强制：用户最新输入后 (After User Input)"
+                    ],
+                    "default": "auto"
+                  },
+                  "content": {
+                    "description": "提示词内容",
+                    "hint": "支持变量占位符：{user_name}、{user_id}、{group_id}、{date}、{time}、{datetime}、{weekday}、{umo}",
+                    "type": "text",
+                    "default": ""
+                  }
+                }
+              },
+              "anchor_persona": {
+                "name": "🔒 【系统锚点】人格设定 (Persona)",
+                "hint": "代表 AstrBot 人格设定所在的位置，请勿删除，通过上下移动提示词来调整相对顺序",
+                "display_item": "note",
+                "hide_hint_in_list": true,
+                "items": {
+                  "note": {
+                    "description": "锚点位置说明（无需修改）",
+                    "type": "string",
+                    "default": "【系统锚点】此处为 AstrBot 的人格设定（Persona）"
+                  }
+                }
+              },
+              "anchor_user_input": {
+                "name": "💬 【系统锚点】用户最新输入 (Latest User Input)",
+                "hint": "代表用户最新输入所在的位置，请勿删除，通过上下移动提示词来调整相对顺序",
+                "display_item": "note",
+                "hide_hint_in_list": true,
+                "items": {
+                  "note": {
+                    "description": "锚点位置说明（无需修改）",
+                    "type": "string",
+                    "default": "【系统锚点】此处为用户的最新输入（User Input）"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
