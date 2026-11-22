@@ -1,0 +1,2 @@
+# astrbot_plugin_prompt_injector
+提示词编排注入
